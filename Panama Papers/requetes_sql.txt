@@ -23,23 +23,79 @@ assoc_inter_enti >> inter et entity
       LIMIT 1
   )
 
-# à partir du LIKE c'est là qu'on intègre la recherche de l'intermédiaire avec le plus de sociétés
+# à partir du LIKE c'est là qu'on intègre la recherche de l'intermédiaire avec le plus de sociétés = une REQUÊTE IMBRIQUÉE
 # order pour organiser et desc de manière décroissante, limite 1 c'est n'affichait que le 1er résultat
 # résultat ORION HOUSE SERVICES (HK) - Adress : LIMITED ROOM 1401; 14/F.; WORLD COMMERCE  CENTRE;[...] TSUI; KOWLOON - Ville : HONG KONG
 
 
+Combien la base contient-elle de bénéficiaires (officer) avec un nom unique ? # 122 590 bénéficiaires uniques # 
+Quel est le bénéficiaire dont le nom revient le plus souvent ? # THE BEARER #
+  
+  SELECT COUNT(DISTINCT(name)) 
+  FROM officer
 
-Combien la base contient-elle de bénéficiaires avec un nom unique ? Quel est le bénéficiaire dont le nom revient le plus souvent ?
+puis
+
+  SELECT name
+  FROM officer
+  GROUP BY name
+  ORDER BY COUNT(*) DESC
+  LIMIT 1;  
+
 
 Donner la liste des juridictions avec le nombre d'entreprises offshores enregistrées sur chaque territoire, triée par ordre décroissant.
 
+  SELECT jurisdiction_description AS juridiction_list, COUNT(name) AS total_offshore_companies
+  FROM entity
+  GROUP by jurisdiction_description
+  ORDER BY COUNT(name) DESC
+
+
 Regrouper les sociétés offshores par statut, et trier la liste par ordre décroissant.
+
+  SELECT e.status, COUNT(e.name) AS total_offshore_companies
+  FROM entity e, source s
+  WHERE e.source = s.source                                
+  aND s.source = 'Panama Papers'
+  GROUP by e.status
+  ORDER BY COUNT(e.name) DESC
+
 
 Trouver la liste des bénéficiaires dont le nom contient "BNP" et ajouter, pour chaque bénéficiaire, le nom des sociétés offshores.
 
+  SELECT o.name AS BNP_beneficiary_list, e.name AS offshore_compagny
+  FROM officer o, entity e, assoc_officer_entity a
+  WHERE o.id = a.officer
+  AND e.id = a.entity
+  AND o.name LIKE '%BNP%'
+  ORDER BY o.name
+
+
 Trouver la liste des sociétés dont la juridiction est "France", "Monaco" ou "Réunion".
 
+#Aucune juridiction n'est située dans ces pays, normal puisqu'il fallait qu'elle soit située dans des paradis fiscaux, mais on peut retrouver les fausses localisations en faisant : 
+
+  SELECT e.name AS Company, a.country_codes AS pays, e.jurisdiction_description AS jurisdiction_name
+  FROM entity e
+  JOIN address a ON e.id_address = a.id_address
+  WHERE a.country_codes = 'France' 
+  OR a.country_codes = 'Monaco' 
+  OR a.country_codes = 'Réunion'
+  ORDER BY e.name
+
+
 Trouver la liste des sociétés dont le pays de l'adresse et le pays de la juridiction sont différents.
+
+  SELECT e.name AS Company, a.country_codes AS pays, e.jurisdiction_description AS jurisdiction_name
+  FROM entity e
+  JOIN address a ON e.id_address = a.id_address
+  WHERE a.country_codes != e.jurisdiction_description
+  AND e.name IS NOT NULL
+  ORDER BY e.name
+
+#Soit 200 179 sociétés offshores (distinct entities)
+
+
 
 Trouver la liste des bénéficiaires qui ont des sociétés au même nom et enregistrée à la même date, trier la liste par odre décroissant.
 
